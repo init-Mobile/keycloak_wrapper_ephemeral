@@ -26,8 +26,7 @@ class KeycloakWrapper {
   /// The details from making a successful token exchange.
   TokenResponse? tokenResponse;
 
-  factory KeycloakWrapper({required KeycloakConfig config}) =>
-      _instance ??= KeycloakWrapper._(config);
+  factory KeycloakWrapper({required KeycloakConfig config}) => _instance ??= KeycloakWrapper._(config);
 
   KeycloakWrapper._(this._keycloakConfig);
 
@@ -96,7 +95,7 @@ class KeycloakWrapper {
   /// Logs the user in.
   ///
   /// Returns true if login is successful.
-  Future<bool> login() async {
+  Future<bool> login({bool preferEphemeralSession = false}) async {
     _assertInitialization();
     try {
       tokenResponse = await _appAuth.authorizeAndExchangeCode(
@@ -108,6 +107,9 @@ class KeycloakWrapper {
           promptValues: ['login'],
           allowInsecureConnections: _keycloakConfig.allowInsecureConnections,
           clientSecret: _keycloakConfig.clientSecret,
+          externalUserAgent: preferEphemeralSession
+              ? ExternalUserAgent.ephemeralAsWebAuthenticationSession
+              : ExternalUserAgent.asWebAuthenticationSession,
         ),
       );
 
@@ -133,7 +135,7 @@ class KeycloakWrapper {
   /// Logs the user out.
   ///
   /// Returns true if logout is successful.
-  Future<bool> logout() async {
+  Future<bool> logout({bool preferEphemeralSession = false}) async {
     _assertInitialization();
     try {
       final request = EndSessionRequest(
@@ -141,6 +143,9 @@ class KeycloakWrapper {
         issuer: _keycloakConfig.issuer,
         postLogoutRedirectUrl: _keycloakConfig.redirectUri,
         allowInsecureConnections: _keycloakConfig.allowInsecureConnections,
+        externalUserAgent: preferEphemeralSession
+            ? ExternalUserAgent.ephemeralAsWebAuthenticationSession
+            : ExternalUserAgent.asWebAuthenticationSession,
       );
 
       await _appAuth.endSession(request);
@@ -156,15 +161,12 @@ class KeycloakWrapper {
 
   /// Requests a new access token if it expires within the given duration.
   Future<void> updateToken([Duration? duration]) async {
-    final securedRefreshToken =
-        await _secureStorage.read(key: _refreshTokenKey);
+    final securedRefreshToken = await _secureStorage.read(key: _refreshTokenKey);
 
     if (securedRefreshToken == null) {
       developer.log('No refresh token found.', name: 'keycloak_wrapper');
       _streamController.add(false);
-    } else if (JWT
-        .decode(securedRefreshToken)
-        .willExpired(duration ?? Duration.zero)) {
+    } else if (JWT.decode(securedRefreshToken).willExpired(duration ?? Duration.zero)) {
       developer.log('Expired refresh token', name: 'keycloak_wrapper');
       _streamController.add(false);
     } else {
