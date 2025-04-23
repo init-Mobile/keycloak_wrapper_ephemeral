@@ -93,7 +93,7 @@ class KeycloakWrapper {
   }
 
   /// Logs the user in.
-  ///
+  /// if preferEphemeralSession == true, no iOS System Dialog will appear when login is initiated.
   /// Returns true if login is successful.
   Future<bool> login({bool preferEphemeralSession = false}) async {
     _assertInitialization();
@@ -133,7 +133,7 @@ class KeycloakWrapper {
   }
 
   /// Logs the user out.
-  ///
+  /// if preferEphemeralSession == true, no iOS System Dialog will appear when logout is initiated.
   /// Returns true if logout is successful.
   Future<bool> logout({bool preferEphemeralSession = false}) async {
     _assertInitialization();
